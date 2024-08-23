@@ -9,7 +9,7 @@ Steps to run the code Locally.
 
 4. replace the open `OPENAI API KEY`  with the key.
 
-5. open the terminal in vscode, by pressing ctrl+
+5. open the terminal in vscode, by pressing ctrl+`
 
 6. enter the following command to run the program :
 	```streamlit run "CHATBOT V2.py"```
