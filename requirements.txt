@@ -1,0 +1,14 @@
+streamlit 
+numpy 
+matplotlib 
+opencv-python-headless 
+librosa 
+tensorflow 
+pandas 
+joblib 
+speechrecognition 
+gTTS 
+openai 
+playsound 
+sounddevice 
+scipy
