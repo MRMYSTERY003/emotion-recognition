@@ -18,7 +18,6 @@ import joblib
 import speech_recognition as sr
 from gtts import gTTS
 import openai
-import playsound
 
 import sounddevice as sd
 import numpy as np
@@ -286,32 +285,32 @@ def get_chatbot_response(text, condition):
 
 
 
-# Function to convert text to speech and play it
-def text_to_speech(text):
-    tts = gTTS(text=text, lang='en')
-    filename = "response.mp3"
-    tts.save(filename)
-    playsound.playsound(filename)
-    os.remove(filename)
+# # Function to convert text to speech and play it
+# def text_to_speech(text):
+#     tts = gTTS(text=text, lang='en')
+#     filename = "response.mp3"
+#     tts.save(filename)
+#     playsound.playsound(filename)
+#     os.remove(filename)
 
 # Function to run a conversation loop
-def run_conversation(condition):
-    st.markdown("<div class='audio-wave'>🔊</div>", unsafe_allow_html=True)
-    st.write(f"Starting conversation for {condition}. Speak now!")
-    start_time = time.time()
-    duration = 60  # 60 seconds
+# def run_conversation(condition):
+#     st.markdown("<div class='audio-wave'>🔊</div>", unsafe_allow_html=True)
+#     st.write(f"Starting conversation for {condition}. Speak now!")
+#     start_time = time.time()
+#     duration = 60  # 60 seconds
 
-    while time.time() - start_time < duration:
-        user_input = recognize_speech()
-        if user_input is None:
-            continue
+#     while time.time() - start_time < duration:
+#         user_input = recognize_speech()
+#         if user_input is None:
+#             continue
 
-        response = get_chatbot_response(user_input, condition)
-        text_to_speech(response)
+#         response = get_chatbot_response(user_input, condition)
+#         text_to_speech(response)
 
-    st.write("Conversation ended.")
-    # st.experimental_rerun()
-    st.session_state.reset = True
+#     st.write("Conversation ended.")
+#     # st.experimental_rerun()
+#     st.session_state.reset = True
 
 
 
