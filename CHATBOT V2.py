@@ -10,6 +10,8 @@ import cv2
 import librosa
 import librosa.display
 from tensorflow.keras.models import load_model
+import streamlit.components.v1 as components
+from sklearn.preprocessing import OneHotEncoder
 import warnings
 import pandas as pd
 import joblib
@@ -23,8 +25,8 @@ import numpy as np
 import scipy.io.wavfile as wav
 
 # Set up OpenAI API Key
-openai.api_key = "API_KEY"
-
+openai.api_key = "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"
+# openai.api_key = os.getenv("sk-9JpKnW1eSzEZrK2QnKQkEVK4DaljxtzYhgMhgOZ-mZT3BlbkFJ8vuPzw5mbzf9QLgCgm1BkKKOfwYkSOMfWVM1CqMegA")
 
 # Load constants
 CAT6 = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise']
@@ -327,10 +329,27 @@ def record_audio(duration, filename):
     print(f"Audio saved to {filename}")
 
 rec = False
+state = None
+
+
+# condition_met = st.button("Trigger Conversation") 
+# print(condition_met)
+
+
+
+# // Trigger the startConversation() function if the condition is met
+# //if ({'true' if condition_met else 'false'}) {{
+# //    startConversation();
+# //}}
+
+
+
+
+
 
 # Main logic to trigger chatbot based on detected condition
 def main():
-    global rec
+    global rec, state, condition_met
     if 'reset' not in st.session_state:
         st.session_state.reset = False
     st.title("Neu-Free emotion analysis for e-care buddy hearing product")
@@ -441,13 +460,161 @@ def main():
             title = f"Detected conditions: {detected_state}"
             st.write(title)
 
+
+            Features = pd.DataFrame(X)
+            X1 = Features.values
+
+            x_test = X1
+            scaler = joblib.load('scaler.pkl1')
+
+            # Use the loaded scaler to transform data
+            x_test = scaler.transform(x_test)
+            x_test = np.expand_dims(x_test, axis=2)
+            print('====================>1')
+            #path_checkpoint = "training/cp.ckpt"
+            path_checkpoint = "speech_audio.h5"
+            model.load_weights(path_checkpoint)
+            y_pred = model.predict(x_test)
+            y_pred_normalized = y_pred / np.sum(y_pred, axis=1, keepdims=True)
+
+
+
+            for i in range(len(y_pred_normalized)):
+                top_2_emotion_indices = np.argsort(y_pred_normalized[i])[::-1][:2]
+                top_2_emotion_probs = y_pred_normalized[i][top_2_emotion_indices]
+                top_2_emotion_labels = [CAT6[idx] for idx in top_2_emotion_indices]
+
+                # Format and print the results
+                result_string = ", ".join(
+                    [f"{label} {prob * 100:.2f}%" for label, prob in zip(top_2_emotion_labels, top_2_emotion_probs)])
+
+
+            encoder_file = "encoder1.npy"
+            encoder_categories = np.load(encoder_file, allow_pickle=True)
+            categories_list = encoder_categories.tolist()[0]
+            print("=================categories_list::",categories_list)
+            new_encoder = OneHotEncoder(categories=[categories_list])
+            new_encoder.fit(np.array(categories_list).reshape(-1, 1))
+
+
+            pred = new_encoder.inverse_transform(y_pred)
+            print("======================pred:::",y_pred[0])
+    
+            txt = "Detected emotion:" + str(result_string)
+            print("==========================out", txt)
+    
+
+            # Analyze the top 2 emotions
+            detected_state = analyze_emotion_combinations(top_2_emotion_labels)
+            # title = f"{txt}"
+            # st.write(title)
+
+
             # Disable UI and show audio wave while chatbot is active
 
             fig = plt.figure(figsize=(10, 4))
-            plot_emotions(data6=y_pred[0], fig=fig, title=title)
+            plot_emotions(data6=y_pred[0], fig=fig, title=txt)
             st.pyplot(fig)
 
-            run_conversation(detected_state)
+
+            # run_conversation(detected_state)
+            state = detected_state
+            # trigger_convo(detected_state)
+
+            components.html(
+            f"""
+            <div style="overflow-y: auto; height: 300px; border: 1px solid #ccc; padding: 10px;">
+                <div id="chatbox" style="height: 250px; overflow-y: auto; color : white"></div>
+            </div>
+
+            <script>
+            const chatbox = document.getElementById('chatbox');
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            let conversationTimeout;
+            let endTime;
+            
+            recognition.onstart = function() {{
+                appendMessage('Voice recognition started. Speak now...');
+            }};
+            
+            recognition.onresult = function(event) {{
+                const transcript = event.results[0][0].transcript;
+                appendMessage('You: ' + transcript);
+                console.log(transcript);
+            
+                getChatbotResponse(transcript).then(response => {{
+                    appendMessage('Bot: ' + response);
+                    console.log(response);
+                    speak(response);
+            
+                    if (Date.now() >= endTime) {{
+                        endConversation();
+                    }} else {{
+                        recognition.start();
+                    }}
+                }});
+            }};
+            
+            function startConversation() {{
+                appendMessage('Starting a 30-second conversation...');
+                endTime = Date.now() + 30000;
+                recognition.start();
+                conversationTimeout = setTimeout(endConversation, 30000);
+            }}
+            
+            function endConversation() {{
+                recognition.stop();
+                clearTimeout(conversationTimeout);
+                const farewellMessage = "Thank you for the conversation. Goodbye!";
+                appendMessage('Bot: ' + farewellMessage);
+                speak(farewellMessage);
+            }}
+            
+            function appendMessage(message) {{
+                const p = document.createElement('p');
+                p.textContent = message;
+                chatbox.appendChild(p);
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }}
+            
+            async function getChatbotResponse(text) {{
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer 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`
+                    }},
+                    body: JSON.stringify({{
+                        model: "gpt-3.5-turbo",
+                        messages: [
+                            {{ role: "system", content: "You are a helpful assistant." }},
+                            {{ role: "user", content: text }}
+                        ],
+                        max_tokens: 150,
+                        temperature: 0.7
+                    }})
+                }});
+
+                const data = await response.json();
+                return data.choices[0].message.content.trim();
+            }}
+            function speak(message) {{
+                const speech = new SpeechSynthesisUtterance(message);
+                speech.pitch = 1.2;
+                speech.rate = 1.0;
+                speech.volume = 0.8;
+                speechSynthesis.speak(speech);
+            }}
+            
+            startConversation();
+            </script>
+            """,
+            height=400
+        )
+
 
     elif choice == "Dataset analysis":
         st.subheader("Dataset analysis")
@@ -457,9 +624,9 @@ def main():
         st.subheader("About")
         st.info("thiruvikkiramanp@gmail.com")
 
+st.button("Re-run")
 if __name__ == '__main__':
     main()
 
-st.button("Re-run")
 
 
