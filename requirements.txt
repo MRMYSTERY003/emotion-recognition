@@ -9,6 +9,5 @@ joblib
 speechrecognition 
 gTTS 
 openai 
-playsound 
 sounddevice 
 scipy
