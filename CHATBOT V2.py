@@ -16,16 +16,9 @@ import warnings
 import pandas as pd
 import joblib
 import speech_recognition as sr
-from gtts import gTTS
-import openai
 
-import sounddevice as sd
 import numpy as np
 import scipy.io.wavfile as wav
-
-# Set up OpenAI API Key
-openai.api_key = "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"
-# openai.api_key = os.getenv("sk-9JpKnW1eSzEZrK2QnKQkEVK4DaljxtzYhgMhgOZ-mZT3BlbkFJ8vuPzw5mbzf9QLgCgm1BkKKOfwYkSOMfWVM1CqMegA")
 
 # Load constants
 CAT6 = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise']
@@ -262,26 +255,26 @@ def recognize_speech():
 #     st.write(f"Bot: {response_text}")
 #     return response_text
 
-def get_chatbot_response(text, condition):
-    # Prepare the message for the chat model
-    messages = [
-        {"role": "system", "content": f"You are a helpful assistant for someone with {condition}."},
-        {"role": "user", "content": text}
-    ]
+# def get_chatbot_response(text, condition):
+#     # Prepare the message for the chat model
+#     messages = [
+#         {"role": "system", "content": f"You are a helpful assistant for someone with {condition}."},
+#         {"role": "user", "content": text}
+#     ]
     
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" depending on availability
-            messages=messages,
-            max_tokens=150,
-            temperature=0.7
-        )
-        response_text = response.choices[0].message['content'].strip()
-        st.write(f"Bot: {response_text}")
-        return response_text
-    except Exception as e:
-        st.write(f"An error occurred: {e}")
-        return None
+#     try:
+#         response = openai.ChatCompletion.create(
+#             model="gpt-3.5-turbo",  # or "gpt-4" depending on availability
+#             messages=messages,
+#             max_tokens=150,
+#             temperature=0.7
+#         )
+#         response_text = response.choices[0].message['content'].strip()
+#         st.write(f"Bot: {response_text}")
+#         return response_text
+#     except Exception as e:
+#         st.write(f"An error occurred: {e}")
+#         return None
 
 
 
@@ -314,18 +307,18 @@ def get_chatbot_response(text, condition):
 
 
 
-def record_audio(duration, filename):
-    # Sample rate in Hertz
-    sample_rate = 44100
-    # Record audio
-    print(f"Recording for {duration} seconds...")
-    audio_data = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=2, dtype='int16')
-    sd.wait()  # Wait until recording is finished
-    print("Recording complete.")
+# def record_audio(duration, filename):
+#     # Sample rate in Hertz
+#     sample_rate = 44100
+#     # Record audio
+#     print(f"Recording for {duration} seconds...")
+#     audio_data = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=2, dtype='int16')
+#     sd.wait()  # Wait until recording is finished
+#     print("Recording complete.")
 
-    # Save audio to WAV file
-    wav.write(filename, sample_rate, audio_data)
-    print(f"Audio saved to {filename}")
+#     # Save audio to WAV file
+#     wav.write(filename, sample_rate, audio_data)
+#     print(f"Audio saved to {filename}")
 
 rec = False
 state = None
@@ -357,16 +350,83 @@ def main():
     menu = ["Upload audio", "Dataset analysis", "About"]
     choice = st.sidebar.selectbox("Menu", menu)
 
+
     if choice == "Upload audio":
         st.subheader("Upload audio")
         audio_file = st.file_uploader("Upload audio file", type=['wav'])
 
-        if st.button('Record'):
+        # time.sleep(3)
+        components.html(
+            """
+            <html>
+            <head>
+                <style>
+                    .button {
+                        background-color: transparent; /* Remove default background color */
+                        color: inherit; /* Inherit text color from parent element */
+                        border: none; /* Remove border */
+                        padding: 10px 20px; /* Add custom padding */
+                        border-radius: 5px; /* Optional: add rounded corners */
+                        cursor: pointer; /* Change cursor to pointer on hover */
+                        font-size: 16px; /* Set font size */
+                    }
+
+                    .button:hover {
+                        background-color: #3c3f46; /* Add background color on hover */
+                        color: white; /* Set text color on hover */
+                    }
+
+                    </style>
+            
+
+            </head>
+            <body>
+                <button id="recordBtn">Record</button>
+                <script>
+                    const recordButton = document.getElementById('recordBtn');
+                    console.log("done")
+
+                    recordButton.addEventListener('click', async () => {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        const mediaRecorder = new MediaRecorder(stream);
+                        const audioChunks = [];
+
+                        mediaRecorder.ondataavailable = event => {
+                            audioChunks.push(event.data);
+                        };
+
+                        mediaRecorder.start();
+
+                        setTimeout(() => {
+                            mediaRecorder.stop();
+                        }, 5000);  // Record for 5 seconds
+
+                        mediaRecorder.onstop = async () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                            const formData = new FormData();
+                            formData.append('audio', audioBlob, 'recording.wav');
+
+                            await fetch('http://127.0.0.1:5000/upload', {
+                                method: 'POST',
+                                body: formData,
+                            });
+
+                            alert('Audio uploaded successfully!');
+                        };
+                    });
+                </script>
+            </body>
+            </html>
+            """,
+            height=50,
+        )
+
+
+        if st.button('Process'):
             with st.spinner('Recording for 5 seconds ....'):
-                st.write("Recording...")
-                # time.sleep(3)
-                record_audio(5, "./audio/test.wav")
-                rec = True
+                print("recording")
+
+            rec = True
             st.success("Recording completed")
 
         if audio_file is not None or rec:
