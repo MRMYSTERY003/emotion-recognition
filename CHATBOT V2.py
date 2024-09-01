@@ -10,6 +10,9 @@ import cv2
 import librosa
 import librosa.display
 from tensorflow.keras.models import load_model
+from audio_recorder_streamlit import audio_recorder
+from audiorecorder import audiorecorder
+
 import streamlit.components.v1 as components
 from sklearn.preprocessing import OneHotEncoder
 import warnings
@@ -356,75 +359,18 @@ def main():
         audio_file = st.file_uploader("Upload audio file", type=['wav'])
 
         # time.sleep(3)
-        components.html(
-            """
-            <html>
-            <head>
-                <style>
-                    .button {
-                        background-color: transparent; /* Remove default background color */
-                        color: inherit; /* Inherit text color from parent element */
-                        border: none; /* Remove border */
-                        padding: 10px 20px; /* Add custom padding */
-                        border-radius: 5px; /* Optional: add rounded corners */
-                        cursor: pointer; /* Change cursor to pointer on hover */
-                        font-size: 16px; /* Set font size */
-                    }
 
-                    .button:hover {
-                        background-color: #3c3f46; /* Add background color on hover */
-                        color: white; /* Set text color on hover */
-                    }
+        audio = audiorecorder("Click to record", "Click to stop recording")
 
-                    </style>
-            
+        if len(audio) > 0:
+            # To play audio in frontend:
+            st.audio(audio.export().read())  
 
-            </head>
-            <body>
-                <button id="recordBtn">Record</button>
-                <script>
-                    const recordButton = document.getElementById('recordBtn');
-                    console.log("done")
+            # To save audio to a file, use pydub export method:
+            audio.export("./audio/test.wav", format="wav")
 
-                    recordButton.addEventListener('click', async () => {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        const mediaRecorder = new MediaRecorder(stream);
-                        const audioChunks = [];
-
-                        mediaRecorder.ondataavailable = event => {
-                            audioChunks.push(event.data);
-                        };
-
-                        mediaRecorder.start();
-
-                        setTimeout(() => {
-                            mediaRecorder.stop();
-                        }, 5000);  // Record for 5 seconds
-
-                        mediaRecorder.onstop = async () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                            const formData = new FormData();
-                            formData.append('audio', audioBlob, 'recording.wav');
-
-                            await fetch('http://127.0.0.1:5000/upload', {
-                                method: 'POST',
-                                body: formData,
-                            });
-
-                            alert('Audio uploaded successfully!');
-                        };
-                    });
-                </script>
-            </body>
-            </html>
-            """,
-            height=50,
-        )
-
-
-        if st.button('Process'):
-            with st.spinner('Recording for 5 seconds ....'):
-                print("recording")
+            # To get audio properties, use pydub AudioSegment properties:
+            st.write(f"Frame rate: {audio.frame_rate}, Frame width: {audio.frame_width}, Duration: {audio.duration_seconds} seconds")
 
             rec = True
             st.success("Recording completed")
