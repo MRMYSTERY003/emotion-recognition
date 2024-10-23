@@ -1,9 +1,8 @@
 streamlit 
-numpy 
 matplotlib 
 opencv-python-headless 
 librosa 
-tensorflow 
+tensorflow==2.12.0
 pandas 
 joblib 
 speechrecognition 
@@ -11,3 +10,5 @@ gTTS
 openai 
 sounddevice 
 scipy
+audio_recorder_streamlit
+audiorecorder
